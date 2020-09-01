@@ -1,0 +1,13 @@
+variables:
+    DBPATH=
+stages:
+  - build
+  - deploy
+
+build_image:
+  stage: build
+  allow_failure: false
+  script:
+      - mongod --port=27017 --dbpath=${DBPATH} &
+      - npm i
+      - npm run build
