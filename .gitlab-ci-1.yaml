@@ -1,0 +1,81 @@
+variables:
+  DOCKER_REPO: "msraushan96"
+  IMAGE_BASE_NAME: "task"
+  IMAGE: "$DOCKER_REPO/$IMAGE_BASE_NAME"
+  DOCKER_USER: "msraushan96"
+  DOCKER_PASSWORD: "MSraushan*07"
+  DEPLOY_NAME: "msraushan96"
+  CONTAINER_NAME: "msraushan96"
+  CLUSTER_NAME: "gke_devops-96_us-east1-b_cluster-1"
+  CLUSTER_USER: "admin"
+  CLUSTER_PASS: "3LLZaGMmnBAPEqgC"
+  SERVER: "https://35.237.204.144"
+  CERTIFICATE_AUTHORITY_DATA: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURERENDQWZTZ0F3SUJBZ0lSQUx0V2JHRUpEMktXOGhmZzBCS2hsQ013RFFZSktvWklodmNOQVFFTEJRQXcKTHpFdE1Dc0dBMVVFQXhNa01HVm1OREF4TW1FdFpUVXhNeTAwWlRJd0xUazNZMk10WXpNME1USmxaR0UyTTJVdwpNQjRYRFRJd01EY3hNVEV5TURBMU5Gb1hEVEkxTURjeE1ERXpNREExTkZvd0x6RXRNQ3NHQTFVRUF4TWtNR1ZtCk5EQXhNbUV0WlRVeE15MDBaVEl3TFRrM1kyTXRZek0wTVRKbFpHRTJNMlV3TUlJQklqQU5CZ2txaGtpRzl3MEIKQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBa1pVMW81MjRWRDhtL1BGbFV3UjFZZU1WZnZhaG1VT01tZzZtaVJTOAp0dG5ndm9KUlljNTZ3ZzdKdEw2eG5UbXZuNXRoNU1nQnJFWkNsc3ZSUkJPakoyc0k5WGxMMk0zK29UMTdNQWV6CmhReVFOdW9lK1dZZDVySDBCbjRoSEFMc0xoVjJjSG9YNm50YnRvSStaYmRkN2JmTks0dXRuWUhBdjRCaE9QaWgKTUl0cGo5RUlMSDhZNjY3d1psSlA5UDlzeW1LYm5tNHl1MkhSYjZXVXRBa29majFuTjVaT2w1c3owSDl4WXowMQpEMWpBYUluMnR6Q0poaXhOcGM2dTdWaEN3TUEzNDVIVWQrYXNIakc0VlhEcVV2Zi9WaGlnNHhvWWdQQ2JRaDdxCk1MRVFkbnBZYk5QcWVLT3VVRWlod2NSdWVsaHdEZTlZTmxVa2o4UG9ad0pud1FJREFRQUJveU13SVRBT0JnTlYKSFE4QkFmOEVCQU1DQWdRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQQpmUDZUWGlpZVg2U21BOWdQSzFPMFgrbEhpNngzdlg3OHA4akhLR0cxUCtDNkh2RzA1ZGFNd0IxL1ZidXN2cjFNCkpuMFJPWG9JeTg0dFZPTEx4ZmpiUUF5MDhWTitGa2FNK2hwMkJwMnVNNlRxTEhNdFJVWmhzSUZRNDZ1QnZSM2gKMjZablI2Q3RRTzFyYzhiTHhGaFdmUVFvaFl4QTBZR3pnZ1F2QStybVdyZjVFb1J2L0x6OUdoOEN0dzNUU1hieQpuelBwaWhTd3JSZXJiU3RmZkFNNW11Y3BxSGtUQ0ZWRVNhQVA1MTNIQnFid2t1N0x4MnR0MTQrSXRhZFlCY3ZaCm1Zc0Rwd2FGTTV2M3NwWGdYOGxMK09TcDNUZDByRHpwYUltVnRJdHhZclJsbi8rd1NtM0daR3ludjFnTjhtUEoKd3lPWGtodDRuSVBIS3RmVjJyWDEyZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0="
+  ACCOUNT_SID: "ACc2421311ed1dd3dbf80d92aba4c517c3"                         
+  TOKEN: "4a6c4f36779f9e03c864ee18de856618"
+  SENDER: +17187018580
+  RECIEVER: +919915574843
+
+stages:
+  - build
+  - deploy
+  - sms
+
+  
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  
+before_script:
+   - touch docker.txt k8s.txt
+
+build_image: 
+   stage: build
+   when: manual
+   allow_failure: false
+   script:
+     -  docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
+     -  docker build --cache-from=${IMAGE}:latest -t ${IMAGE}:${CI_COMMIT_SHA} .
+     -  docker tag ${IMAGE}:${CI_COMMIT_SHA} ${IMAGE}:latest 
+     -  docker push ${IMAGE}
+     -  docker rmi ${IMAGE}:${CI_COMMIT_SHA}
+     -  docker rmi -f $(docker images --filter "dangling=true" -q) 
+     -  echo "Last build was successfull on $date" > docker.txt
+   artifacts:
+      reports:
+         metrics: docker.txt
+      expire_in: 1 week
+      when: on_success
+   tags: 
+      - build
+   
+deploy_clusters:
+   stage: deploy
+   image: dtzar/helm-kubectl
+   when: manual
+   allow_failure: false
+   script:
+    - kubectl config set-cluster ${CLUSTER_NAME} --server=${SERVER}
+    - kubectl config set clusters.${CLUSTER_NAME}.certificate-authority-data ${CERTIFICATE_AUTHORITY_DATA}
+    - kubectl config set-credentials ${CLUSTER_NAME} --username=${CLUSTER_USER}  --password=${CLUSTER_PASS}
+    - kubectl config set-context ${CLUSTER_NAME} --cluster=${CLUSTER_NAME} --user=${CLUSTER_NAME}
+    - kubectl config use-context ${CLUSTER_NAME}
+    - kubectl set image deployment/${DEPLOY_NAME} ${CONTAINER_NAME}=${IMAGE}:latest --record
+
+   artifacts:
+      reports:
+         metrics: k8s.txt
+      expire_in: 1 week
+      when: on_success
+   
+
+send_sms:
+   stage: sms
+   image: alpine
+   when: on_failure
+   script:
+      - apk add curl
+      - curl "https://api.twilio.com/2010-04-01/Accounts/${ACCOUNT_SID}/Messages.json" -X POST --data-urlencode "To=${RECIEVER}" --data-urlencode "From=${SENDER}" --data-urlencode 'MessagingServiceSid=MG0e21320c4183487b45843e84a376d3f9' --data-urlencode 'Body=Error in one of the Job' -u ${ACCOUNT_SID}:${TOKEN}
+
+       
+  
+   
