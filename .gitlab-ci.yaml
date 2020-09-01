@@ -1,13 +1,26 @@
 variables:
     DBPATH=
+    HOST=
+    PORT=
+    PASSWORD=
 stages:
-  - build
-  - deploy
+  - job1
+  - job2
+  - job3
 
-build_image:
-  stage: build
+redis:
+  stage: job1
+  allow_failure: false
+  script:
+      - redis-cli -h ${HOST} -p ${PORT} -a ${PASSWORD}
+mongo:
+  stage: job2
   allow_failure: false
   script:
       - mongod --port=27017 --dbpath=${DBPATH} &
+node:
+   stage: job3
+   allow_failure: false
+   script:
       - npm i
       - npm run build
